@@ -1,0 +1,27 @@
+#ifndef CONFIG_H
+#define CONFIG_H
+
+// ==========================================
+// WIFI CREDENTIALS
+// ==========================================
+#define WIFI_SSID "YOUR_WIFI_SSID"
+#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
+
+// ==========================================
+// FIREBASE CONFIGURATION
+// ==========================================
+// Project API Key (Web API Key from Project Settings > General)
+#define FIREBASE_API_KEY "YOUR_FIREBASE_WEB_API_KEY"
+
+// Realtime Database URL (without trailing slash, e.g. https://xyz-default-rtdb.firebaseio.com)
+#define FIREBASE_DATABASE_URL "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com"
+
+// Device Unique Identifier
+#define DEVICE_ID "algae_pbr_01"
+
+// (Optional) Firebase Email & Password for Email authentication,
+// or leave empty if your database rules allow read/write with database secret.
+#define USER_EMAIL "device@microalgae.local"
+#define USER_PASSWORD "device_password_123"
+
+#endif // CONFIG_H

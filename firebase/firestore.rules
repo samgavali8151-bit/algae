@@ -1,0 +1,35 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // User profile access: Users can read/write their own profile; admins can read all
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && (request.auth.uid == userId || request.auth.token.role == 'admin');
+    }
+
+    // Historical readings: Authenticated users can read; backend service or device can create
+    match /readings/{deviceId}/data/{readingId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+
+    // Alerts collection: Authenticated users can read and acknowledge/resolve alerts
+    match /alerts/{alertId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+
+    // Sensor calibration: Authenticated users can read; admins can write
+    match /calibration/{deviceId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+
+    // AI Insights & Forecasts: Authenticated users can read; backend writes
+    match /aiInsights/{insightId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+  }
+}

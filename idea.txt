@@ -1,0 +1,172 @@
+You are a senior full-stack engineer and UI/UX designer. Build a complete, production-quality web platform for the project:
+
+"IoT-BASED CARBON CAPTURE AND RECOVERY SYSTEM USING MICROALGAE"
+
+──────────────────────────────────────────
+1. PROJECT OVERVIEW
+──────────────────────────────────────────
+A microalgae photobioreactor captures CO₂ through photosynthesis. An ESP32 monitors the culture environment and controls a pump. The website is the monitoring, control, analytics and AI layer. The aim is to maximise algae growth and estimate how much CO₂ is being captured and recovered.
+
+──────────────────────────────────────────
+2. HARDWARE (must all be represented in the UI and data model)
+──────────────────────────────────────────
+Microcontroller: ESP32 (12-bit ADC, 0–4095, 3.3 V reference)
+
+Sensors / actuators:
+- DHT11 (GPIO 4): temperature (°C) and humidity (%)
+- LDR (GPIO 34): raw ADC value 0–4095, classified as
+    DARK (<=300), LOW (<=1000), MEDIUM (<=2200), BRIGHT (>2200)
+- pH sensor (GPIO 32): raw ADC (0–4095) and voltage (raw/4095 × 3.3 V).
+    Readings are currently RAW and uncalibrated, so build a calibration feature
+    (two- or three-point calibration with pH 4.0 / 7.0 / 10.0 buffers) that converts voltage to real pH.
+- Water level sensor (GPIO 27, INPUT_PULLUP): digital, HIGH or LOW
+- Relay module (GPIO 25, ACTIVE LOW) controlling the water/air pump: ON or OFF
+- LCD (currently disconnected): include an optional "LCD status" indicator
+
+The sensors are read every 2 seconds in the current sketch.
+
+──────────────────────────────────────────
+3. TECH STACK
+──────────────────────────────────────────
+- Frontend: Next.js (App Router) + TypeScript + Tailwind CSS + shadcn/ui
+  + Recharts (or Chart.js) + Framer Motion
+- Backend: Python (FastAPI) for analytics, AI/ML, calculations, alerts, report generation
+- Database / realtime: Firebase
+  - Realtime Database for live readings and control commands
+  - Firestore for history, users, alerts, calibration, AI insights
+  - Firebase Authentication (email/password + Google sign-in)
+  - Firebase Cloud Messaging for alert notifications
+- ESP32 firmware: update Algae.ino to push data to Firebase (WiFi + Firebase ESP Client library),
+  read relay commands from Firebase, and keep the existing sensor logic
+- Deployment: Vercel (frontend), Render/Railway/Cloud Run (backend)
+
+──────────────────────────────────────────
+4. FIREBASE DATA STRUCTURE
+──────────────────────────────────────────
+Realtime DB:
+/devices/{deviceId}/live: { temperature, humidity, ldrValue, lightLevel, phRaw, phVoltage, phCalibrated,
+                            waterLevel, relayStatus, timestamp, online }
+/devices/{deviceId}/control: { relayCommand: "ON|OFF|AUTO", mode: "manual|auto|ai", updatedBy }
+
+Firestore:
+/readings/{deviceId}/data/{autoId}: all sensor fields + timestamp (written every N seconds)
+/alerts/{id}: { type, severity, message, timestamp, resolved }
+/calibration/{deviceId}: { phPoints, slope, offset, updatedAt }
+/aiInsights/{id}: { summary, recommendations, createdAt }
+/users/{uid}: { name, role, preferences }
+
+Provide Firebase security rules (authenticated read/write, device-scoped write for the ESP32).
+
+──────────────────────────────────────────
+5. PAGES AND FEATURES
+──────────────────────────────────────────
+
+A) LANDING PAGE (public)
+- Hero section: project title, tagline, animated algae/CO₂ visual, "Launch Dashboard" and "Learn More" buttons
+- Problem and solution: climate change, CO₂ emissions, how microalgae capture carbon
+- How it works: animated step-by-step flow (Sensors → ESP32 → Firebase → AI → Dashboard → Actuator)
+- Hardware showcase cards for every component
+- Live stats strip (pulls real data: current temperature, pH, estimated CO₂ captured)
+- Features, tech stack, team and about section, FAQ, footer
+- Smooth scroll animations, dark and light mode, fully responsive
+
+B) AUTH
+- Login / signup / forgot password using Firebase Auth
+- Protected routes with Next.js middleware
+- Roles: Admin (control and calibrate) and Viewer (read-only)
+
+C) LIVE DASHBOARD
+- Device status: online/offline, last-seen time, WiFi signal
+- Sensor cards with live updating values and colour-coded status
+  (temperature, humidity, light level + LDR raw value, pH calibrated + raw + voltage, water level, relay/pump state)
+- Gauges for pH, temperature and light intensity
+- Pump control panel: manual ON/OFF toggle, AUTO mode, AI mode
+  (writes to Firebase; ESP32 listens and switches the relay)
+- Culture health score (0–100) combining pH, temperature, light and water level
+- Real-time CO₂ capture estimate (kg and g/day) from growth conditions
+- Active alerts panel
+- Handle sensor error states (e.g. DHT returns NaN → show "Sensor Error")
+
+D) GRAPHS / ANALYTICS
+- Real-time line charts for each parameter (rolling window)
+- Multi-parameter overlay comparison (e.g. light vs pH vs temperature)
+- Time range selector: 1h, 6h, 24h, 7d, 30d, custom
+- Correlation heatmap between parameters
+- Light-level distribution (DARK/LOW/MEDIUM/BRIGHT) donut chart
+- Pump on/off timeline (Gantt-style)
+- Export charts as PNG and data as CSV/PDF
+
+E) HISTORY (time-wise)
+- Searchable, filterable table of all readings with pagination
+- Group by hour / day / week / month
+- Daily, weekly and monthly summaries (min, max, average per parameter)
+- Calendar view: click a date to see that day's summary
+- Event log: pump toggles, alerts, calibrations, mode changes
+- Compare two time periods side by side
+- Download reports (CSV, PDF)
+
+F) ALERTS AND NOTIFICATIONS
+- Configurable thresholds (e.g. pH outside 6.5–8.5, temp outside 20–35 °C, water LOW, light DARK for too long)
+- In-app, email and push notifications
+- Alert history with acknowledge/resolve
+
+G) CALIBRATION AND SETTINGS
+- pH calibration wizard using buffer solutions
+- LDR threshold tuning
+- Data logging interval, device management, user management, theme
+
+──────────────────────────────────────────
+6. ADVANCED AI FEATURES (modern, LLM and ML based)
+──────────────────────────────────────────
+1. AI Copilot Chatbot: a natural-language assistant grounded in the live and historical data.
+   Examples: "Why did pH drop last night?", "Is my culture healthy?", "How much CO₂ did we capture this week?"
+   Use the Claude API (or any LLM) with tool-calling or RAG over Firestore data.
+2. Anomaly detection (Isolation Forest / autoencoder in Python): flag abnormal sensor behaviour and failing sensors.
+3. Predictive forecasting (Prophet / LSTM): predict pH, temperature and light for the next 24h and warn before problems.
+4. Algae growth and CO₂ capture estimation model: estimate biomass growth rate and CO₂ sequestered from light, pH, temperature and time.
+5. Smart autonomous pump control: AI decides when to turn the pump ON/OFF based on predictions, with a human override and a decision explanation ("Pump turned ON because pH rose above 8.2 and water is LOW").
+6. Daily/weekly AI report generator: automatically written insights and recommendations, exportable as PDF.
+7. Optimisation recommendations: ideal light exposure, best operating windows, efficiency score.
+8. Voice assistant: ask questions and give commands by voice (Web Speech API).
+9. Predictive maintenance: detect sensor drift, pH probe ageing, and needed calibration.
+10. Sustainability and carbon credit dashboard: convert captured CO₂ into equivalents (trees planted, car km offset) and an estimated carbon credit value.
+11. Digital twin / what-if simulator: sliders for light, temperature and pH showing the predicted effect on growth and capture.
+12. Image analysis (optional): upload photos of the culture to estimate density and colour health with a vision model.
+
+──────────────────────────────────────────
+7. BACKEND (FastAPI) ENDPOINTS
+──────────────────────────────────────────
+GET  /api/live/{deviceId}
+GET  /api/history?from=&to=&interval=
+GET  /api/stats/summary
+POST /api/control/relay
+POST /api/calibration/ph
+GET  /api/ai/anomalies
+GET  /api/ai/forecast
+POST /api/ai/chat
+GET  /api/ai/report
+GET  /api/co2/estimate
+Include Firebase Admin SDK, scheduled jobs (APScheduler) for aggregation and AI analysis, CORS, Pydantic validation, and token verification of Firebase ID tokens.
+
+──────────────────────────────────────────
+8. UI / DESIGN
+──────────────────────────────────────────
+- Modern, clean, eco-tech aesthetic: deep green and teal palette with glassmorphism cards
+- Dark mode default with a light mode toggle
+- Sidebar navigation (Dashboard, Analytics, History, AI Copilot, Alerts, Control, Settings)
+- Fully responsive (mobile first), PWA support, skeleton loaders, toast notifications
+- Smooth micro-interactions and accessible components
+
+──────────────────────────────────────────
+9. DELIVERABLES
+──────────────────────────────────────────
+1. Complete folder structure (frontend, backend, firmware)
+2. All code files, fully working and commented
+3. Updated ESP32 firmware (Algae.ino) with WiFi + Firebase integration, keeping the sensor logic and thresholds above
+4. Firebase setup guide + security rules
+5. .env.example for both frontend and backend
+6. requirements.txt and package.json
+7. Step-by-step run and deployment instructions
+8. A mock data simulator so the dashboard works without hardware
+
+Build it step by step, starting with the folder structure, Firebase schema and ESP32 firmware, then the backend, then the frontend. Ask no unnecessary questions; use sensible defaults.
